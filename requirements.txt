@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+streamlit
+requests
+langgraph
+openai
+python-dotenv
+apscheduler
+pydantic
+PyJWT
+passlib[bcrypt]
+python-multipart
