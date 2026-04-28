@@ -162,7 +162,3 @@ AIPlanner/
 ```
 
 ---
-
-## License
-
-MIT
