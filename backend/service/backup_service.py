@@ -366,15 +366,34 @@ class BackupService:
             bool: 是否删除成功
         """
         try:
+            # 防止路径遍历攻击：只允许基本文件名，不允许包含路径分隔符
+            if not filename or '/' in filename or '\\' in filename or '..' in filename:
+                logger.warning(f"无效的备份文件名：{filename}")
+                return False
+            
+            # 确保文件名以.zip 结尾
+            if not filename.endswith('.zip'):
+                logger.warning(f"备份文件名必须以.zip 结尾：{filename}")
+                return False
+            
             filepath = os.path.join(self.backup_dir, filename)
+            
+            # 进一步验证：规范化路径并确保在备份目录内
+            normalized_path = os.path.normpath(filepath)
+            normalized_backup_dir = os.path.normpath(self.backup_dir)
+            
+            if not normalized_path.startswith(normalized_backup_dir):
+                logger.warning(f"路径遍历尝试：{filepath}")
+                return False
+            
             if os.path.exists(filepath):
                 os.remove(filepath)
-                logger.info(f"删除备份文件: {filepath}")
+                logger.info(f"删除备份文件：{filepath}")
                 return True
             return False
 
         except Exception as e:
-            logger.error(f"删除备份文件失败: {str(e)}")
+            logger.error(f"删除备份文件失败：{str(e)}")
             return False
 
     def get_backup_info(self, filename: str) -> Optional[Dict[str, Any]]:
@@ -387,7 +406,26 @@ class BackupService:
             dict: 备份文件信息
         """
         try:
+            # 防止路径遍历攻击：只允许基本文件名，不允许包含路径分隔符
+            if not filename or '/' in filename or '\\' in filename or '..' in filename:
+                logger.warning(f"无效的备份文件名：{filename}")
+                return None
+            
+            # 确保文件名以.zip 结尾
+            if not filename.endswith('.zip'):
+                logger.warning(f"备份文件名必须以.zip 结尾：{filename}")
+                return None
+            
             filepath = os.path.join(self.backup_dir, filename)
+            
+            # 进一步验证：规范化路径并确保在备份目录内
+            normalized_path = os.path.normpath(filepath)
+            normalized_backup_dir = os.path.normpath(self.backup_dir)
+            
+            if not normalized_path.startswith(normalized_backup_dir):
+                logger.warning(f"路径遍历尝试：{filepath}")
+                return None
+            
             if not os.path.exists(filepath):
                 return None
 

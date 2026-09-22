@@ -522,10 +522,18 @@ class TodoDatabase:
             params.append(notes)
         
         if updates:
-            updates.append("update_time = datetime('now','localtime')")
+            # Validate column names to prevent SQL injection
+            validated_updates = []
+            for update in updates:
+                column_name = update.split(' = ?')[0].strip()
+                if column_name not in allowed_task_columns and column_name != "update_time = datetime('now','localtime')":
+                    raise ValueError(f"Invalid column name: {column_name}")
+                validated_updates.append(update)
+            
+            validated_updates.append("update_time = datetime('now','localtime')")
             params.append(task_id)
             self.cursor.execute(
-                f"UPDATE tasks SET {', '.join(updates)} WHERE id = ?",
+                f"UPDATE tasks SET {', '.join(validated_updates)} WHERE id = ?",
                 params
             )
             self.conn.commit()
@@ -956,9 +964,18 @@ class TodoDatabase:
         if not updates:
             return False
         
+        # Validate column names to prevent SQL injection
+        allowed_columns = {'name', 'description', 'priority', 'category', 'tags', 'sub_tasks', 'notes'}
+        validated_updates = []
+        for update in updates:
+            column_name = update.split(' = ?')[0].strip()
+            if column_name not in allowed_columns:
+                raise ValueError(f"Invalid column name: {column_name}")
+            validated_updates.append(update)
+        
         params.append(template_id)
         self.cursor.execute(
-            f"UPDATE task_templates SET {', '.join(updates)} WHERE id = ?",
+            f"UPDATE task_templates SET {', '.join(validated_updates)} WHERE id = ?",
             params
         )
         self.conn.commit()

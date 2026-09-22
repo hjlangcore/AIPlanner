@@ -117,10 +117,11 @@ app = FastAPI(
     description="提供智能待办任务的管理接口，支持任务创建、筛选、统计等功能"
 )
 
-# 配置CORS
+# 配置 CORS - 生产环境应限制为特定域名
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8080").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 允许所有源，开发环境建议
+    allow_origins=ALLOWED_ORIGINS,  # 从环境变量读取，默认为本地开发地址
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
