@@ -17,7 +17,10 @@ from ..db.db_handler import db
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT 配置
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "smart-planner-secret-key-2024")
+# 必须设置 JWT_SECRET_KEY 环境变量，不提供默认值以确保安全
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("JWT_SECRET_KEY 环境变量未设置，请设置一个安全的密钥")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 7 天
 
@@ -37,7 +40,10 @@ ROLE_PERMISSIONS = {
 def get_password_hash(password: str) -> str:
     # bcrypt has a maximum password length of 72 bytes
     # Truncate password to 72 bytes to avoid error
-    password = password[:72]
+    # Note: Passwords longer than 72 bytes will be truncated silently
+    # Consider validating password length at the API layer
+    if len(password.encode('utf-8')) > 72:
+        password = password[:72]
     # Use bcrypt directly to hash the password
     import bcrypt
     hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
@@ -47,7 +53,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     # Use bcrypt directly to verify the password
     # Truncate password to 72 bytes to match the hashing process
     import bcrypt
-    plain_password = plain_password[:72]
+    if len(plain_password.encode('utf-8')) > 72:
+        plain_password = plain_password[:72]
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 def create_access_token(data: dict):
