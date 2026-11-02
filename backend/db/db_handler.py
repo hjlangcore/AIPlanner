@@ -11,6 +11,43 @@ import json
 from typing import List, Tuple, Optional
 
 
+# Columns of tasks, in the order created by TodoDatabase.create_table.
+# Migrations only add category, tags, progress, notes, and update_time,
+# which are already part of that CREATE TABLE statement.
+_TASK_TABLE_COLUMNS = (
+    "id",
+    "raw_task",
+    "sub_tasks",
+    "priority",
+    "deadline",
+    "schedule",
+    "status",
+    "category",
+    "tags",
+    "progress",
+    "notes",
+    "update_time",
+    "create_time",
+)
+
+# Columns that update_task must not assign from caller input.
+# id and create_time are fixed at insert. update_time is stamped below
+# with a SQL expression. status and progress have their own methods.
+_TASK_COLUMNS_NOT_UPDATED_BY_UPDATE_TASK = frozenset({
+    "id",
+    "status",
+    "progress",
+    "update_time",
+    "create_time",
+})
+
+# Whitelist for the dynamic UPDATE. Only these names may be interpolated.
+allowed_task_columns = frozenset(
+    column for column in _TASK_TABLE_COLUMNS
+    if column not in _TASK_COLUMNS_NOT_UPDATED_BY_UPDATE_TASK
+)
+
+
 class TodoDatabase:
     """数据库操作类
     
@@ -476,8 +513,12 @@ class TodoDatabase:
 
     def update_task(self, task_id: int, raw_task: str = None, sub_tasks: List[str] = None,
                    priority: str = None, deadline: str = None, schedule: str = None,
-                   category: str = None, tags: List[str] = None, notes: str = None) -> bool:
+                   category: str = None, tags: List[str] = None, notes: str = None,
+                   **fields) -> bool:
         """更新任务信息
+        
+        只更新传入的非 None 字段。未知字段（包括 tasks 表中但不由本方法
+        更新的列）会抛出 ValueError，不会写入 SQL。
         
         Args:
             task_id: 任务ID
@@ -492,7 +533,19 @@ class TodoDatabase:
         
         Returns:
             bool: 更新是否成功
+        
+        Raises:
+            ValueError: 字段名不在可更新列白名单中
         """
+        # Explicit parameters already cover every whitelisted column.
+        # Reject any other keyword before its name can be interpolated.
+        if fields:
+            column_name = next(
+                (name for name in fields if name not in allowed_task_columns),
+                next(iter(fields)),
+            )
+            raise ValueError(f"Invalid column name: {column_name}")
+
         updates = []
         params = []
         

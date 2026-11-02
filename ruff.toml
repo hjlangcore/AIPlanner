@@ -6,8 +6,3 @@ line-length = 120
 # A full Ruff run reports a large set of pre-existing style findings.
 # Those are not gated here, so CI does not require an application rewrite.
 select = ["E9", "F63", "F7", "F82"]
-
-[lint.per-file-ignores]
-# update_task references allowed_task_columns, which is not defined in this file.
-# Ignored so CI can pass without changing application behavior.
-"backend/db/db_handler.py" = ["F821"]
